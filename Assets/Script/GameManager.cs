@@ -1,0 +1,99 @@
+using NUnit.Framework;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class GameManager : MonoBehaviour
+{
+    public static GameManager Instance;
+    public int flowerCount = 0;
+    public int maxFlowerCount = 7;
+    [SerializeField] private List<Transform> flowerPosition = new List<Transform>();
+    private List<int> usedPositions = new List<int>();
+    [SerializeField] private GameObject flowerPrefab;
+    private List<GameObject> UnusedFlowerPool = new List<GameObject>();
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void Start()
+    {
+        List<int> selected = new List<int>();
+
+        while (selected.Count < maxFlowerCount)
+        {
+            int r = Random.Range(0, flowerPosition.Count);
+
+            if (!selected.Contains(r))
+            {
+                selected.Add(r);
+            }
+        }
+
+        foreach (int index in selected)
+        {
+            Transform spawnPos = flowerPosition[index];
+            GameObject flowerObj = Instantiate(flowerPrefab, spawnPos.position, Quaternion.identity);
+            Flower flower = flowerObj.GetComponent<Flower>();
+            flower.flowerGenerate(spawnPos.position);
+            flower.positionIndex = index;
+            usedPositions.Add(index);
+            flowerCount++;
+        }
+    }
+
+    private void Update()
+    {
+        if (flowerCount < maxFlowerCount) { 
+            List<int> notSelected = new List<int>();
+            for (int i = 0; i < flowerPosition.Count; i++)
+            {
+                if (!usedPositions.Contains(i))
+                {
+                    notSelected.Add(i);
+                }
+            }
+
+            int p = Random.Range(0, notSelected.Count);
+            int posIndex = notSelected[p];
+            Transform spawnPos = flowerPosition[posIndex];
+
+            GameObject flowerObj;
+            if (UnusedFlowerPool.Count > 0)
+            {
+                flowerObj = UnusedFlowerPool[0];
+                UnusedFlowerPool.RemoveAt(0);
+                flowerObj.SetActive(true);
+            }
+            else
+            {
+                flowerObj = Instantiate(flowerPrefab, spawnPos.position, Quaternion.identity);
+            }
+
+            Flower flower = flowerObj.GetComponent<Flower>();
+            flower.flowerGenerate(spawnPos.position);
+            flower.positionIndex = posIndex;
+
+            usedPositions.Add(posIndex);
+            flowerCount++;
+
+        }
+    }
+
+    public void RecycleFlower(Flower flower)
+    {
+        flower.gameObject.SetActive(false);
+        UnusedFlowerPool.Add(flower.gameObject);
+        usedPositions.Remove(flower.positionIndex);
+        flowerCount--;
+    }
+}
