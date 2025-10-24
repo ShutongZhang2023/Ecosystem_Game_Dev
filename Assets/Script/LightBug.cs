@@ -114,8 +114,16 @@ public class LightBug : MonoBehaviour
     {
         if (!canBeCaptured || flower == null) return;
         targetFlower = flower;
+        targetFlower.OnFlowerWithered += Release;
         currentState = LightBugState.Captured;
         rb.linearVelocity = Vector2.zero;
+    }
+
+    public void Release()
+    {
+        targetFlower.OnFlowerWithered -= Release;
+        targetFlower = null;
+        currentState = LightBugState.Flying;
     }
 
 }

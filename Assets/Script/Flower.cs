@@ -2,6 +2,7 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using System.Collections;
+using System;
 
 public enum PlantState
 {
@@ -12,6 +13,8 @@ public enum PlantState
 }
 public class Flower : MonoBehaviour
 {
+    public event Action OnFlowerWithered;
+
     public PlantState currentState;
     public float growTime;
     public float bloomDuration;
@@ -46,10 +49,10 @@ public class Flower : MonoBehaviour
         currentState = PlantState.Grow;
         transform.localScale = Vector3.zero;
         flowerLight.intensity = minLight;
-        float scale = Random.Range(0.05f, 0.15f);
+        float scale = UnityEngine.Random.Range(0.05f, 0.15f);
         targetScale = new Vector3(scale, scale, scale);
-        growTime = Random.Range(10f, 20f);
-        bloomDuration = Random.Range(20f, 40f);
+        growTime = UnityEngine.Random.Range(10f, 20f);
+        bloomDuration = UnityEngine.Random.Range(20f, 40f);
         ChangeState();
     }
 
@@ -105,6 +108,9 @@ public class Flower : MonoBehaviour
     {
         transform.DOKill();
         col.enabled = false;
+
+        OnFlowerWithered?.Invoke();
+
         DOTween.To(() => flowerLight.intensity, x => flowerLight.intensity = x, minLight, witherTime).SetEase(Ease.InQuad);
         Vector3 witherScale = targetScale * 0.5f;
         transform.DOScale(witherScale, witherTime).SetEase(Ease.InQuad).OnComplete(() =>
