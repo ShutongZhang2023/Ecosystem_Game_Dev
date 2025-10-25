@@ -1388,7 +1388,7 @@ GameObject:
   - component: {fileID: 1689180636}
   m_Layer: 0
   m_Name: LightBug
-  m_TagString: Untagged
+  m_TagString: LightBug
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1555,7 +1555,7 @@ Transform:
   m_GameObject: {fileID: 1689180630}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 4.63, y: 0.33, z: 0}
+  m_LocalPosition: {x: -2.18, y: -0.19, z: 0}
   m_LocalScale: {x: 0.05, y: 0.05, z: 0.05}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -1579,6 +1579,7 @@ MonoBehaviour:
   maxSwitchTime: 10
   captureDelay: 5
   currentState: 0
+  targetFlower: {fileID: 0}
 --- !u!50 &1689180636
 Rigidbody2D:
   serializedVersion: 5

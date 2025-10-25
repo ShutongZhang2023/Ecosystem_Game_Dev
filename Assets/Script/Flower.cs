@@ -37,7 +37,7 @@ public class Flower : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
         flowerLight = GetComponent<Light2D>();
         rb = GetComponent<Rigidbody2D>();
-        col = GetComponent<Collider2D>();
+        col = GetComponentInChildren<Collider2D>();
     }
 
     public void flowerGenerate(Vector3 spawnPos)
@@ -129,7 +129,9 @@ public class Flower : MonoBehaviour
         if (collision.CompareTag("LightBug"))
         {
             LightBug bug = collision.GetComponent<LightBug>();
-            bug.SetTargetFlower(this);
+            if (bug.targetFlower == null) {
+                bug.SetTargetFlower(this);
+            }
         }
     }
 

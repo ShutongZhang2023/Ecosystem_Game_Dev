@@ -27,7 +27,7 @@ public class LightBug : MonoBehaviour
     private bool canBeCaptured = false;
 
     public LightBugState currentState = LightBugState.Flying;
-    private Flower targetFlower;
+    public Flower targetFlower;
     private Rigidbody2D rb;
     private Light2D bugLight;
     private SpriteRenderer spriteRenderer;
@@ -117,11 +117,21 @@ public class LightBug : MonoBehaviour
         targetFlower.OnFlowerWithered += Release;
         currentState = LightBugState.Captured;
         rb.linearVelocity = Vector2.zero;
+
+        float stopDistance = Random.Range(0.5f, 2f);
+        Vector3 flowerPosition = flower.transform.position;
+        Vector3 direction = (transform.position - flowerPosition).normalized;
+        Vector3 targetPos = flowerPosition - direction * stopDistance;
+        float travelTime = Vector3.Distance(transform.position, targetPos) / speed;
+        transform.DOMove(targetPos, travelTime).SetEase(Ease.InOutSine).OnComplete(() => rb.linearVelocity = Vector2.zero);
     }
 
     public void Release()
     {
-        targetFlower.OnFlowerWithered -= Release;
+        if (targetFlower != null)
+        {
+            targetFlower.OnFlowerWithered -= Release;
+        }
         targetFlower = null;
         currentState = LightBugState.Flying;
     }
