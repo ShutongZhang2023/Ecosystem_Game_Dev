@@ -22,6 +22,7 @@ public class LightBug : MonoBehaviour
 
     [Header("Life Settings")]
     [SerializeField] private float lifeSpan;
+    [SerializeField] private float shineSpan;
 
     private Vector2 targetPos;
     private float switchTimer;
@@ -52,9 +53,14 @@ public class LightBug : MonoBehaviour
     }
 
     public void generateLightBug() {
+        float x = Random.Range(-areaSize.x / 2f, areaSize.x / 2f);
+        float y = Random.Range(-areaSize.y / 2f, areaSize.y / 2f);
+        transform.position = new Vector2(x, y);
         spriteRenderer.color = new Color(spriteRenderer.color.r, spriteRenderer.color.g, spriteRenderer.color.b, 0f);
+        bugLight.intensity = 0f;
         orbitSpeed = Random.Range(90f, 120);
         lifeSpan = Random.Range(45f, 75f);
+        shineSpan = Random.Range(1f, 2f);
         currentCoroutine = null;
         targetFlower = null;
         canBeCaptured = false;
@@ -102,7 +108,8 @@ public class LightBug : MonoBehaviour
     public void changeToFly() {
         lightTween?.Kill();
         spriteRenderer.DOFade(1f, 1f);
-        lightTween = DOTween.To(() => bugLight.intensity, x => bugLight.intensity = x, 5f, 1.5f).SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine);
+        lightTween = DOTween.To(() => bugLight.intensity, x => bugLight.intensity = x, 5f, shineSpan).SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine);
+        currentState = LightBugState.Flying;
     }
 
     public IEnumerator captureEnable() {
@@ -125,7 +132,10 @@ public class LightBug : MonoBehaviour
         float travelTime = Vector3.Distance(transform.position, targetPos) / speed;
         transform.DOMove(targetPos, travelTime).SetEase(Ease.InOutSine).OnComplete(() => {
             rb.linearVelocity = Vector2.zero;
-            currentCoroutine = StartCoroutine(moveAroundFlower());
+            if (this != null && gameObject.activeInHierarchy)
+            {
+                currentCoroutine = StartCoroutine(moveAroundFlower());
+            }
         });
     }
 
@@ -164,8 +174,12 @@ public class LightBug : MonoBehaviour
     private IEnumerator Dying() {
         yield return new WaitForSeconds(lifeSpan);
         lightTween?.Kill();
+        transform.DOKill();
+        spriteRenderer.DOKill();
         spriteRenderer.DOFade(0f, 2f);
-        DOTween.To(() => bugLight.intensity, x => bugLight.intensity = x, 0f, 2f).OnComplete(() => {
+        DOTween.To(() => bugLight.intensity, x => bugLight.intensity = x, 0f, 2f)
+            .SetTarget(gameObject)
+            .OnComplete(() => {
             if (currentCoroutine != null) { 
                 StopCoroutine(currentCoroutine);
             }
@@ -175,7 +189,8 @@ public class LightBug : MonoBehaviour
                 targetFlower = null;
             }
             currentState = LightBugState.Dead;
-            gameObject.SetActive(false);
+            GameManager.Instance.RecycleBug();
+            Destroy(gameObject);
         });
     }
 

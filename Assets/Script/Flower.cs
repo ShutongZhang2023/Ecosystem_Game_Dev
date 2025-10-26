@@ -24,7 +24,8 @@ public class Flower : MonoBehaviour
     private SpriteRenderer spriteRenderer;
     private Light2D flowerLight;
     private Rigidbody2D rb;
-    private Collider2D col;
+    public Collider2D col;
+    public Transform flowerTransform;
 
     [SerializeField] private float minLight = 0f;
     [SerializeField] private float maxLight = 5f;
@@ -34,10 +35,11 @@ public class Flower : MonoBehaviour
 
     private void Awake()
     {
-        spriteRenderer = GetComponent<SpriteRenderer>();
-        flowerLight = GetComponent<Light2D>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        flowerLight = GetComponentInChildren<Light2D>();
         rb = GetComponent<Rigidbody2D>();
         col = GetComponentInChildren<Collider2D>();
+        
     }
 
     public void flowerGenerate(Vector3 spawnPos)
@@ -47,7 +49,7 @@ public class Flower : MonoBehaviour
         spriteRenderer.color = new Color(spriteRenderer.color.r, spriteRenderer.color.g, spriteRenderer.color.b, 1f);
         transform.position = spawnPos;
         currentState = PlantState.Grow;
-        transform.localScale = Vector3.zero;
+        flowerTransform.localScale = Vector3.zero;
         flowerLight.intensity = minLight;
         float scale = UnityEngine.Random.Range(0.05f, 0.15f);
         targetScale = new Vector3(scale, scale, scale);
@@ -76,22 +78,22 @@ public class Flower : MonoBehaviour
 
     private void Grow() {
         DOTween.To(() => flowerLight.intensity, x => flowerLight.intensity = x, maxLight, growTime);
-        transform.DOScale(targetScale, growTime).SetEase(Ease.InQuad).OnComplete(() =>
+        flowerTransform.DOScale(targetScale, growTime).SetEase(Ease.InQuad).OnComplete(() =>
         {
             currentState = PlantState.Bloom;
             ChangeState();
         });
 
-        transform.DORotate(new Vector3(0, 0, 360f), growTime, RotateMode.FastBeyond360).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart);
+        flowerTransform.DORotate(new Vector3(0, 0, 360f), growTime, RotateMode.FastBeyond360).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart);
     }
 
     private void Bloom()
     {
         col.enabled = true;
-        transform.DOKill();
+        flowerTransform.DOKill();
 
         float breathingScale = targetScale.x * 0.1f;
-        transform.DOScale(targetScale + Vector3.one * breathingScale, 1.5f)
+        flowerTransform.DOScale(targetScale + Vector3.one * breathingScale, 1.5f)
                  .SetLoops(-1, LoopType.Yoyo)
                  .SetEase(Ease.InOutSine);
 
@@ -106,14 +108,14 @@ public class Flower : MonoBehaviour
 
     private void Wither() 
     {
-        transform.DOKill();
+        flowerTransform.DOKill();
         col.enabled = false;
 
         OnFlowerWithered?.Invoke();
 
         DOTween.To(() => flowerLight.intensity, x => flowerLight.intensity = x, minLight, witherTime).SetEase(Ease.InQuad);
         Vector3 witherScale = targetScale * 0.5f;
-        transform.DOScale(witherScale, witherTime).SetEase(Ease.InQuad).OnComplete(() =>
+        flowerTransform.DOScale(witherScale, witherTime).SetEase(Ease.InQuad).OnComplete(() =>
         {
             currentState = PlantState.End;
             rb.bodyType = RigidbodyType2D.Dynamic;

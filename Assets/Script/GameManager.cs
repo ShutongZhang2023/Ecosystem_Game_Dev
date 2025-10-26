@@ -6,11 +6,17 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
     public int flowerCount = 0;
-    public int maxFlowerCount = 7;
-    [SerializeField] private List<Transform> flowerPosition = new List<Transform>();
+    public int bugCount = 0;
+    
     private List<int> usedPositions = new List<int>();
-    [SerializeField] private GameObject flowerPrefab;
     private List<GameObject> UnusedFlowerPool = new List<GameObject>();
+
+    [Header("Scene Settings")]
+    public int maxFlowerCount = 7;
+    public int maxBugCount = 20;
+    [SerializeField] private GameObject flowerPrefab;
+    [SerializeField] private GameObject bugPrefab;
+    [SerializeField] private List<Transform> flowerPosition = new List<Transform>();
 
     private void Awake()
     {
@@ -49,6 +55,14 @@ public class GameManager : MonoBehaviour
             usedPositions.Add(index);
             flowerCount++;
         }
+
+        while (bugCount < maxBugCount)
+        {
+            GameObject bugObj = Instantiate(bugPrefab, Vector3.zero, Quaternion.identity);
+            LightBug bug = bugObj.GetComponent<LightBug>();
+            bug.generateLightBug();
+            bugCount++;
+        }
     }
 
     private void Update()
@@ -85,7 +99,15 @@ public class GameManager : MonoBehaviour
 
             usedPositions.Add(posIndex);
             flowerCount++;
+        }
 
+        if (bugCount < maxBugCount)
+        {
+            GameObject bugObj;
+            bugObj = Instantiate(bugPrefab, Vector3.zero, Quaternion.identity);
+            LightBug bug = bugObj.GetComponent<LightBug>();
+            bug.generateLightBug();
+            bugCount++;
         }
     }
 
@@ -95,5 +117,9 @@ public class GameManager : MonoBehaviour
         UnusedFlowerPool.Add(flower.gameObject);
         usedPositions.Remove(flower.positionIndex);
         flowerCount--;
+    }
+
+    public void RecycleBug() {
+        bugCount--;
     }
 }
