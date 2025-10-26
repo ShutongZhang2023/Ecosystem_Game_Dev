@@ -2,6 +2,7 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using System.Collections;
+using UnityEngine.Rendering;
 
 public enum LightBugState
 {
@@ -17,6 +18,10 @@ public class LightBug : MonoBehaviour
     [SerializeField] private Vector2 areaSize = new Vector2(18f, 10f);
     [SerializeField] private float minSwitchTime = 1.5f;
     [SerializeField] private float maxSwitchTime = 4f;
+    [SerializeField] private float orbitSpeed;
+
+    [Header("Life Settings")]
+    [SerializeField] private float lifeSpan;
 
     private Vector2 targetPos;
     private float switchTimer;
@@ -31,6 +36,8 @@ public class LightBug : MonoBehaviour
     private Rigidbody2D rb;
     private Light2D bugLight;
     private SpriteRenderer spriteRenderer;
+    private Coroutine currentCoroutine;
+    private Tweener lightTween;
 
     private void Awake()
     {
@@ -46,8 +53,14 @@ public class LightBug : MonoBehaviour
 
     public void generateLightBug() {
         spriteRenderer.color = new Color(spriteRenderer.color.r, spriteRenderer.color.g, spriteRenderer.color.b, 0f);
+        orbitSpeed = Random.Range(90f, 120);
+        lifeSpan = Random.Range(45f, 75f);
+        currentCoroutine = null;
+        targetFlower = null;
+        canBeCaptured = false;
         changeToFly();
         StartCoroutine(captureEnable());
+        StartCoroutine(Dying());
     }
 
     private void Flying()
@@ -64,16 +77,6 @@ public class LightBug : MonoBehaviour
         {
             PickNewTarget();
         }
-    }
-
-    private void Capturing()
-    {
-
-    }
-
-    private void StartDead()
-    {
-
     }
 
     private void PickNewTarget()
@@ -93,16 +96,13 @@ public class LightBug : MonoBehaviour
             case LightBugState.Flying:
                 Flying();
                 break;
-
-            case LightBugState.Captured:
-                Capturing();
-                break;
         }
     }
 
-    public void changeToFly() { 
+    public void changeToFly() {
+        lightTween?.Kill();
         spriteRenderer.DOFade(1f, 1f);
-        DOTween.To(() => bugLight.intensity, x => bugLight.intensity = x, 5f, 1.5f).SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine);
+        lightTween = DOTween.To(() => bugLight.intensity, x => bugLight.intensity = x, 5f, 1.5f).SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine);
     }
 
     public IEnumerator captureEnable() {
@@ -118,22 +118,65 @@ public class LightBug : MonoBehaviour
         currentState = LightBugState.Captured;
         rb.linearVelocity = Vector2.zero;
 
-        float stopDistance = Random.Range(0.5f, 2f);
+        float stopDistance = Random.Range(0.3f, 1f);
         Vector3 flowerPosition = flower.transform.position;
         Vector3 direction = (transform.position - flowerPosition).normalized;
-        Vector3 targetPos = flowerPosition - direction * stopDistance;
+        Vector3 targetPos = flowerPosition + direction * stopDistance;
         float travelTime = Vector3.Distance(transform.position, targetPos) / speed;
-        transform.DOMove(targetPos, travelTime).SetEase(Ease.InOutSine).OnComplete(() => rb.linearVelocity = Vector2.zero);
+        transform.DOMove(targetPos, travelTime).SetEase(Ease.InOutSine).OnComplete(() => {
+            rb.linearVelocity = Vector2.zero;
+            currentCoroutine = StartCoroutine(moveAroundFlower());
+        });
+    }
+
+    private IEnumerator moveAroundFlower() 
+    {
+        if (targetFlower == null) yield break;
+
+        float radius = Vector2.Distance(transform.position, targetFlower.transform.position);
+        float startAngle = Vector2.SignedAngle(Vector2.right, (transform.position - targetFlower.transform.position));
+        float angle = startAngle;
+
+        while (targetFlower != null) { 
+            angle += orbitSpeed * Time.deltaTime;
+            float rad = angle * Mathf.Deg2Rad;
+            Vector3 offset = new Vector3(Mathf.Cos(rad), Mathf.Sin(rad), 0f) * radius;
+            transform.position = targetFlower.transform.position + offset;
+            yield return null;
+        }
     }
 
     public void Release()
     {
+        if (currentCoroutine != null)
+        {
+            StopCoroutine(currentCoroutine);
+            currentCoroutine = null;
+        }
         if (targetFlower != null)
         {
             targetFlower.OnFlowerWithered -= Release;
         }
         targetFlower = null;
         currentState = LightBugState.Flying;
+    }
+
+    private IEnumerator Dying() {
+        yield return new WaitForSeconds(lifeSpan);
+        lightTween?.Kill();
+        spriteRenderer.DOFade(0f, 2f);
+        DOTween.To(() => bugLight.intensity, x => bugLight.intensity = x, 0f, 2f).OnComplete(() => {
+            if (currentCoroutine != null) { 
+                StopCoroutine(currentCoroutine);
+            }
+            if (targetFlower != null)
+            {
+                targetFlower.OnFlowerWithered -= Release;
+                targetFlower = null;
+            }
+            currentState = LightBugState.Dead;
+            gameObject.SetActive(false);
+        });
     }
 
 }
