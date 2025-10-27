@@ -14,6 +14,8 @@ public class GameManager : MonoBehaviour
     [Header("Scene Settings")]
     public int maxFlowerCount = 7;
     public int maxBugCount = 20;
+    public int minShadow = 2;
+    public int maxShadow = 6;
     [SerializeField] private GameObject flowerPrefab;
     [SerializeField] private GameObject bugPrefab;
     [SerializeField] private List<Transform> flowerPosition = new List<Transform>();
