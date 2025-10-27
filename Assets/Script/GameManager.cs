@@ -7,7 +7,8 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
     public int flowerCount = 0;
     public int bugCount = 0;
-    
+    public int shadowCount = 0;
+
     private List<int> usedPositions = new List<int>();
     private List<GameObject> UnusedFlowerPool = new List<GameObject>();
 
@@ -18,6 +19,7 @@ public class GameManager : MonoBehaviour
     public int maxShadow = 6;
     [SerializeField] private GameObject flowerPrefab;
     [SerializeField] private GameObject bugPrefab;
+    [SerializeField] private GameObject shadowPrefab;
     [SerializeField] private List<Transform> flowerPosition = new List<Transform>();
 
     private void Awake()
@@ -110,6 +112,14 @@ public class GameManager : MonoBehaviour
             LightBug bug = bugObj.GetComponent<LightBug>();
             bug.generateLightBug();
             bugCount++;
+        }
+
+        if (shadowCount < minShadow)
+        {
+            GameObject shadowObj = Instantiate(shadowPrefab, Vector3.zero, Quaternion.identity);
+            Shadow shadow = shadowObj.GetComponent<Shadow>();
+            shadow.StartSpawnScale();
+            shadowCount++;
         }
     }
 

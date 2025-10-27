@@ -1,5 +1,6 @@
 using DG.Tweening;
 using UnityEngine;
+using System.Collections;
 
 public enum ShadowState
 {
@@ -15,6 +16,11 @@ public class Shadow : MonoBehaviour
     [SerializeField] private LayerMask lightMask;
     [SerializeField] private float fadeTime = 0.8f;
 
+    [Header("Color Change")]
+    [SerializeField] private float fadeSpeed = 1f;
+    [SerializeField] private Color darkColor;
+    [SerializeField] private Color lightColor;
+
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
     private ShadowState currentState;
@@ -24,6 +30,8 @@ public class Shadow : MonoBehaviour
 
     [Header("Reproduction Settings")]
     [SerializeField] private GameObject shadowPrefab;
+    [SerializeField] private float reproduceCooldown = 2f;
+    public bool canReproduce = true;
 
     private void Awake()
     {
@@ -39,14 +47,23 @@ public class Shadow : MonoBehaviour
         EnterSpawn();
     }
 
+    private void Update()
+    {
+        if (currentState == ShadowState.Move)
+        {
+            bool inLight = Physics2D.OverlapPoint(transform.position, lightMask);
+            Color targetColor = inLight ? lightColor : darkColor;
+
+            spriteRenderer.color = Color.Lerp(spriteRenderer.color, targetColor, fadeSpeed * Time.deltaTime);
+        }
+    }
+
     private void EnterSpawn() { 
         currentState = ShadowState.Spawn;
         spriteRenderer.color = new Color(spriteRenderer.color.r, spriteRenderer.color.g, spriteRenderer.color.b, 0f);
 
         moveDirection = Random.insideUnitCircle.normalized;
         rb.linearVelocity = moveDirection * speed;
-
-        Debug.Log("Direction: " + moveDirection + " Velocity: " + rb.linearVelocity);
 
         spriteRenderer.DOFade(0.4f, fadeTime).OnComplete(() =>
         {
@@ -62,11 +79,39 @@ public class Shadow : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
+        Shadow other = collision.gameObject.GetComponent<Shadow>();
+        bool isMaxShadow = GameManager.Instance.shadowCount < GameManager.Instance.maxShadow;
+        if (other != null && canReproduce && other.canReproduce && isMaxShadow)
+        {
+            Vector2 spawnPos = (transform.position + other.transform.position) / 2f;
+            GameObject newShadow = Instantiate(shadowPrefab, spawnPos, Quaternion.identity);
+            GameManager.Instance.shadowCount++;
+            Shadow shadowScript = newShadow.GetComponent<Shadow>();
+            shadowScript.StartSpawnScale();
+            shadowScript.DisableReproduceTemporarily();
+            DisableReproduceTemporarily();
+        }
+
         Vector2 normal = collision.contacts[0].normal;
         moveDirection = Vector2.Reflect(moveDirection, normal);
-        // moveDirection = -moveDirection;
-
         rb.linearVelocity = moveDirection * speed;
+    }
+
+    public void StartSpawnScale()
+    {
+        transform.localScale = Vector3.zero;
+        transform.DOScale(0.2f, 1f).SetEase(Ease.OutBack);
+    }
+
+    public void DisableReproduceTemporarily()
+    {
+        canReproduce = false;
+        StartCoroutine(EnableReproduce());
+    }
+
+    private IEnumerator EnableReproduce() {
+        yield return new WaitForSeconds(reproduceCooldown);
+        canReproduce = true;
     }
 
     private void FixedUpdate()
@@ -81,7 +126,14 @@ public class Shadow : MonoBehaviour
 
     private void EnterDie()
     {
-
+        currentState = ShadowState.Die;
+        transform.DOKill();
+        spriteRenderer.DOFade(0f, fadeTime).OnComplete(() =>
+        {
+            rb.linearVelocity = Vector2.zero;
+            GameManager.Instance.shadowCount--;
+            GameObject.Destroy(gameObject);
+        });
     }
 
 
